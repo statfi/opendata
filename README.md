@@ -13,3 +13,8 @@ This script loads the database contents CSV and creates a list of objects contai
 Additionally fetch_px and fetch_px_zipped can be used to download statistical data as PX files from the database.
 
 WARNING: Statfin database contains over 2500 PX files with many gigabytes of data. 
+
+License
+-------
+
+All code here is under the BSD license unless otherwise stated.
