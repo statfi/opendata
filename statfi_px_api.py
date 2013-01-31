@@ -11,7 +11,7 @@ http://www.stat.fi/org/lainsaadanto/avoin_data_en.html
 import csv, datetime, urllib
 import csv_tools
 
-class Px(object):
+class PxInfo(object):
     """
     A simple object representation of PX information in 
     Statistics Finland's open data API:
@@ -52,7 +52,7 @@ def create_px(url="http://pxweb2.stat.fi/database/StatFin/StatFin_rap.csv"):
     """
     iterable = urllib.urlopen(url)
     iterable.next() #First line is for metadata
-    return [Px(*i) for i in csv_tools.UnicodeReader(iterable, delimiter=";", encoding="iso-8859-1")]
+    return [PxInfo(*i) for i in csv_tools.UnicodeReader(iterable, delimiter=";", encoding="iso-8859-1")]
 
 def fetch_px_zipped(px_objs, target_dir="."):
     """
