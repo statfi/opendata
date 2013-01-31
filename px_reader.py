@@ -20,7 +20,6 @@ from collections import defaultdict
 from itertools import izip_longest, cycle, repeat
 from operator import mul
 
-import unipath
 import pandas as pd
 
 def get_logger(level=logging.DEBUG, handler=logging.StreamHandler):
@@ -183,7 +182,7 @@ def index(px):
         field_values = px.values.get(field)
         repeats = rep_index / len(field_values)
         rep_index = repeats
-        px.log('%s: %s' : (field, repeats))
+        px.log.info('%s: %s' % (field, repeats))
 
         col_index.append(list())
         index = 0
@@ -201,7 +200,7 @@ def index(px):
         field_values = px.values.get(field)
         repeats = rep_index / len(field_values)
         rep_index = repeats
-        px.log('%s: %s' : (field, repeats)
+        px.log.info('%s: %s' % (field, repeats))
 
         row_index.append(list())
         index = 0
