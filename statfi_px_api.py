@@ -5,6 +5,8 @@ This module contains tools to load information about PC Axis files in
 Statistics Finland's databases and download the files from the databases
 using the open data API:
 http://www.stat.fi/org/lainsaadanto/avoin_data_en.html
+
+For license see LICENSE document
 """
 
 
