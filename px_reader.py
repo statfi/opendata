@@ -66,13 +66,14 @@ class Px(object):
         """
         #TODO: somewhat naive implementation for parsing PX metadata needs fixing
         """
-        meta, data = codecs.open(px_doc, encoding='iso-8859-1').read().split("DATA=")
+        meta, data = open(px_doc, 'U').read().split("DATA=")
+        meta = unicode(meta, 'iso-8859-1')
         nmeta = {}
-        for line in meta.strip().split(';'):
+        for line in meta.strip().split(';\n'):
             if line:
                 key, value = line.split('=', 1)
                 nmeta[key.strip()] = self._clean_value(value)
-        return nmeta, data
+        return nmeta, data.strip()[:-1]
    
     def __init__(self, px_doc):
         meta, data = self._split_px(px_doc)
@@ -107,8 +108,8 @@ class Px(object):
         #
         # Number of rows and cols is multiplication of number of variables for both directions
         #
-        self.cols = reduce(mul, [len(self.codes.get(i)) for i in self.heading], 1)
-        self.rows = reduce(mul, [len(self.codes.get(i)) for i in self.stub], 1)
+        self.cols = reduce(mul, [len(self.values.get(i)) for i in self.heading], 1)
+        self.rows = reduce(mul, [len(self.values.get(i)) for i in self.stub], 1)
     
    # def __unicode__(self):
   #      return u'PX file %s: %s' % (self.name, self.title)
