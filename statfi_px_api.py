@@ -10,7 +10,7 @@ For license see LICENSE document
 """
 
 
-import csv, datetime, urllib
+import os, csv, datetime, urllib, urllib2, httplib, StringIO, gzip, os, time
 import csv_tools
 
 class PxInfo(object):
@@ -83,6 +83,7 @@ def fetch_px_zipped(px_objs, target_dir="."):
         pxfile.close()
         time.sleep(1)
 
+
 def fetch_px(px_objs, target_dir="."):
     """
     Fetch PC Axis files for given list of Px objects
@@ -90,13 +91,28 @@ def fetch_px(px_objs, target_dir="."):
 
     WARNING: Statfin database contains over 2500 PX files with many gigabytes of data.
     """
-    import urllib2, httplib, StringIO, gzip, os.path
+    import urllib2, httplib, StringIO, gzip, os
     opener = urllib2.build_opener()
-    for px_obj in px_objs:
-        base, pxfile_path = os.path.split(px_obj.path)
-        pxfile = open(os.path.join(target_dir, pxfile_path), 'w+')
+    for n, px_obj in enumerate(px_objs):
+        protocol, url = urllib.splittype(px_obj.path)
+        base, pxfile_part = urllib.splithost(url)
+        if pxfile_part.startswith(os.sep):
+            pxfile_part = pxfile_part.replace(os.sep, '', 1)
+        pxfile_path = os.path.join(target_dir, pxfile_part)
+        if os.path.exists(pxfile_path):
+            updated = check_update(px_obj.path, pxfile_path, opener)
+            if not updated:
+                continue
         request = urllib2.Request(px_obj.path)
-        f = opener.open(request)
+        try:
+            f = opener.open(request)
+        except urllib2.HTTPError, e:
+            print e, px_obj
+            continue
+
+        makedirs(pxfile_path)
+        pxfile = open(pxfile_path, 'w+')
+        
         try:
             for data in f.read():
                 pxfile.write(data)
@@ -104,3 +120,24 @@ def fetch_px(px_objs, target_dir="."):
             print e, px_obj, f.headers
             break
         pxfile.close()
+
+def check_update(url, file_path, opener):
+    """
+    Check that network resource is newer than file resource
+    """
+    req = urllib2.Request(url)
+    try:
+        url_req = opener.open(req)
+    except urllib2.HTTPError, e:
+        print e, url
+        return False
+    file_mtime_dt = datetime.datetime.fromtimestamp(os.path.getmtime(file_path))
+    url_modified_dt = datetime.datetime.strptime(
+        url_req.headers.dict.get('last-modified'), '%a, %d %b %Y %H:%M:%S GMT')
+    return url_modified_dt > file_mtime_dt
+
+def makedirs(px_path):
+    try:
+        os.makedirs(os.path.split(px_path)[0])
+    except OSError, e:
+        pass
