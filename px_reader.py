@@ -19,7 +19,6 @@ from collections import OrderedDict as OD
 from collections import defaultdict
 from itertools import izip_longest, cycle, repeat
 from operator import mul
-
 import pandas as pd
 
 def get_logger(level=logging.DEBUG, handler=logging.StreamHandler):
@@ -45,7 +44,7 @@ class Px(object):
     """
     
     _timeformat = '%Y-%m-%d %H:%M'
-    _subfield_re = re.compile(r'^(.*?)\("(.*?)"\)$')
+    _subfield_re = re.compile(r'^(.*?)\("(.*?)"\)=')
     _items_re = re.compile(r'"(.*?)"')
 
     log = get_logger()
@@ -62,39 +61,41 @@ class Px(object):
         else:
             return items
 
+    def _get_subfield(self, m, line):
+        field, subkey = m.groups()
+        value = line[m.end():]
+        return field.lower(), subkey, self._clean_value(value)
+
     def _split_px(self, px_doc):
         """
-        #TODO: somewhat naive implementation for parsing PX metadata needs fixing
+        Parses metadata keywords from px_doc and inserts those into self object
+        Returns the data part
         """
         meta, data = open(px_doc, 'U').read().split("DATA=")
         meta = unicode(meta, 'iso-8859-1')
+        data = unicode(data, 'iso-8859-1')
         nmeta = {}
         for line in meta.strip().split(';\n'):
             if line:
-                key, value = line.split('=', 1)
-                nmeta[key.strip()] = self._clean_value(value)
-        return nmeta, data.strip()[:-1]
-   
-    def __init__(self, px_doc):
-        meta, data = self._split_px(px_doc)
-        self._data = data
-        for field, value in meta.items():
-            if field.find("]") != -1:
-                continue
-            field = field.lower()
-            if field.find('(') != -1:
-                field, name = self._get_subfield_name(field)
-                if name:
+                m = self._subfield_re.match(line)
+                if m:
+                    field, subkey, value = self._get_subfield(m, line)
                     if hasattr(self, field):
-                        getattr(self, field)[name] = value
+                        getattr(self, field)[subkey] = value
                     else:
                         setattr(self, field, OD(
-                            [(name, value)]
+                            [(subkey, value)]
                             ))
-                else:
-                    self.log.info('Erroneus subfield %s' % field)
-            else:
-                setattr(self, field, value)
+                else: 
+                    field, value = line.split('=', 1)
+                    if not field.startswith('NOTE'):
+                        setattr(self, field.strip().lower(), self._clean_value(value))
+                        #TODO: NOTE keywords can be standalone or have subfields...
+        return data.strip()[:-1]
+   
+    def __init__(self, px_doc):
+        data = self._split_px(px_doc)
+        self._data = data.replace('"', '')
 
         if type(self.stub) != type(list()):
             self.stub = [self.stub]
@@ -102,8 +103,9 @@ class Px(object):
         if type(self.heading) != type(list()):
             self.heading = [self.heading]
 
-        self.stub = [i.lower() for i in self.stub]
-        self.heading = [i.lower() for i in self.heading]
+        for key, val in self.values.items():
+            if type(val) != type(list()):
+                self.values[key] = [val]
 
         #
         # Number of rows and cols is multiplication of number of variables for both directions
@@ -183,7 +185,7 @@ def index(px):
         field_values = px.values.get(field)
         repeats = rep_index / len(field_values)
         rep_index = repeats
-        px.log.info('%s: %s' % (field, repeats))
+        print field, repeats
 
         col_index.append(list())
         index = 0
@@ -201,7 +203,7 @@ def index(px):
         field_values = px.values.get(field)
         repeats = rep_index / len(field_values)
         rep_index = repeats
-        px.log.info('%s: %s' % (field, repeats))
+        print field, repeats
 
         row_index.append(list())
         index = 0
